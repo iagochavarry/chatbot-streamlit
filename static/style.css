@@ -1,0 +1,207 @@
+/* ================================================================
+   Sandbox Chat — Custom Styles
+   Only what config.toml cannot handle.
+   ================================================================ */
+
+/* -- Hide Streamlit chrome ------------------------------------ */
+#MainMenu,
+footer,
+header,
+[data-testid="stDecoration"],
+[data-testid="stToolbar"],
+[data-testid="stStatusWidget"],
+[data-testid="manage-app-button"],
+[data-testid="stAppDeployButton"],
+[data-testid="baseButton-header"],
+.stDeployButton,
+.viewerBadge_container__r5tak,
+div:has(> [data-testid="manage-app-button"]),
+iframe[title="manage-app-button"] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+}
+
+/* -- Sidebar: always visible, no collapse --------------------- */
+[data-testid="stSidebar"] {
+    transform: none !important;
+    min-width: 300px !important;
+    width: 300px !important;
+    visibility: visible !important;
+    position: relative !important;
+}
+
+button[kind="header"],
+[data-testid="stSidebarCollapseButton"],
+[data-testid="collapsedControl"] {
+    display: none !important;
+}
+
+/* -- Layout --------------------------------------------------- */
+.block-container {
+    max-width: 740px !important;
+    padding: 2rem 1rem 5rem !important;
+    margin: 0 auto;
+}
+
+/* -- Typography polish ---------------------------------------- */
+h1, h2, h3, h4 {
+    letter-spacing: -0.03em !important;
+    font-weight: 600 !important;
+}
+
+/* -- Sidebar form labels -------------------------------------- */
+[data-testid="stSidebar"] .stTextInput label,
+[data-testid="stSidebar"] .stSelectbox label,
+[data-testid="stSidebar"] .stTextArea label,
+[data-testid="stSidebar"] .stSlider label {
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    color: #86868B !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+}
+
+/* -- Chat messages: strip Streamlit defaults ------------------- */
+[data-testid="stChatMessage"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 2px 0 !important;
+    gap: 0 !important;
+}
+
+[data-testid="stChatMessage"] > div:first-child:not([data-testid="stChatMessageContent"]) {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+}
+
+[data-testid="stChatMessageContent"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* -- Custom bubble layout ------------------------------------- */
+.msg-row {
+    display: flex;
+    width: 100%;
+    margin: 3px 0;
+}
+.msg-row.right { justify-content: flex-end; }
+.msg-row.left  { justify-content: flex-start; }
+
+.msg-bubble {
+    display: inline-block;
+    max-width: 75%;
+    min-width: 48px;
+    width: fit-content;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                 "Inter", "Segoe UI", system-ui, sans-serif;
+}
+
+.msg-bubble.user {
+    background: #1D1D1F;
+    color: #FFFFFF;
+    border-radius: 20px 20px 4px 20px;
+}
+
+.msg-bubble.bot {
+    background: #FFFFFF;
+    color: #1D1D1F;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 20px 20px 20px 4px;
+}
+
+.msg-meta {
+    font-size: 0.65rem;
+    color: #AEAEB2;
+    margin-top: 3px;
+    padding: 0 4px;
+}
+.msg-row.right .msg-meta { text-align: right; }
+.msg-row.left  .msg-meta { text-align: left; }
+
+/* -- Chat input refinements ----------------------------------- */
+[data-testid="stChatInput"] textarea {
+    border-radius: 22px !important;
+    padding: 0.75rem 1rem !important;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-testid="stChatInput"] textarea::placeholder {
+    color: #AEAEB2 !important;
+}
+
+[data-testid="stChatInput"] button {
+    border-radius: 50% !important;
+}
+
+/* -- Welcome state -------------------------------------------- */
+.welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8rem 1rem 4rem;
+    text-align: center;
+}
+
+.welcome-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #1D1D1F;
+    letter-spacing: -0.03em;
+    margin: 0 0 8px;
+}
+
+.welcome-sub {
+    font-size: 0.88rem;
+    color: #86868B;
+    max-width: 320px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* -- Toast (inline notification) ------------------------------ */
+.toast {
+    display: inline-block;
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.07);
+    border-radius: 14px;
+    padding: 10px 18px;
+    font-size: 0.84rem;
+    color: #86868B;
+    margin: 6px 0;
+}
+
+/* -- Utility: divider ----------------------------------------- */
+.divider {
+    height: 1px;
+    background: rgba(0, 0, 0, 0.07);
+    margin: 1rem 0;
+}
+
+.sidebar-footer {
+    font-size: 0.68rem;
+    color: #AEAEB2;
+    letter-spacing: 0.02em;
+    padding-top: 0.25rem;
+}
+
+/* -- Scrollbar ------------------------------------------------ */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.10);
+    border-radius: 4px;
+}

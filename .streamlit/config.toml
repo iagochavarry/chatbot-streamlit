@@ -1,0 +1,19 @@
+[client]
+showErrorDetails = "none"
+toolbarMode = "minimal"
+
+[theme]
+base = "light"
+primaryColor = "#1D1D1F"
+backgroundColor = "#F3ECE4"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1D1D1F"
+font = "sans serif"
+
+[theme.sidebar]
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F7F4F1"
+
+[server]
+headless = true
+enableStaticServing = true
