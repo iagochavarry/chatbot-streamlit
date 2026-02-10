@@ -26,7 +26,7 @@ st.set_page_config(
 # ═══════════════════════════════════════════════════════════════
 
 _NUDE = "#F3ECE4"
-_SIDEBAR = "#FAF7F4"
+_SIDEBAR = "#FFFFFF"
 
 st.markdown(
     f"""<style>
@@ -92,11 +92,23 @@ header,
 .stDeployButton,
 [data-testid="stAppDeployButton"],
 [data-testid="baseButton-header"],
+._profileContainer_gzau3_53,
+[data-testid="stMainBlockContainer"] + div,
 div[data-testid="stAppViewContainer"] > div:last-child > div:last-child {{
     display: none !important;
     visibility: hidden !important;
     height: 0 !important;
     overflow: hidden !important;
+    position: absolute !important;
+    pointer-events: none !important;
+}}
+
+/* "Manage app" bar at bottom-right */
+div:has(> [data-testid="manage-app-button"]),
+iframe[title="manage-app-button"],
+.stApp > div:last-child {{
+    display: none !important;
+    height: 0 !important;
 }}
 
 /* ════════════════════════════════════════════════════════════
@@ -123,9 +135,14 @@ h1, h2, h3, h4 {{
     z-index: 100 !important;
 }}
 
-[data-testid="stSidebar"] > div {{
+[data-testid="stSidebar"] > div,
+[data-testid="stSidebar"] > div > div,
+[data-testid="stSidebar"] section,
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"],
+[data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] {{
     width: 300px !important;
     background: var(--sidebar-bg) !important;
+    background-color: var(--sidebar-bg) !important;
 }}
 
 [data-testid="stSidebar"] .block-container,
@@ -180,8 +197,45 @@ button[kind="header"],
     box-shadow: none !important;
 }}
 
+/* Slider — thumb + track */
 [data-testid="stSlider"] [role="slider"] {{
     background: var(--text) !important;
+    border-color: var(--text) !important;
+}}
+
+[data-testid="stSlider"] [data-testid="stThumbValue"] {{
+    color: var(--text) !important;
+}}
+
+/* Override red/default track colors */
+[data-testid="stSlider"] div[data-baseweb="slider"] div {{
+    background-color: transparent !important;
+}}
+
+[data-testid="stSlider"] div[role="slider"] ~ div {{
+    background-color: rgba(0,0,0,0.10) !important;
+}}
+
+[data-testid="stSlider"] div[data-baseweb="slider"] > div > div:first-child {{
+    background-color: var(--text) !important;
+}}
+
+[data-testid="stSlider"] div[data-baseweb="slider"] > div > div:last-child {{
+    background-color: rgba(0,0,0,0.10) !important;
+}}
+
+/* Password visibility toggle */
+.stTextInput button {{
+    background: var(--text) !important;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0 !important;
+    border: 1px solid var(--border) !important;
+    border-left: none !important;
+    color: var(--white) !important;
+}}
+
+.stTextInput button svg {{
+    fill: var(--white) !important;
+    stroke: var(--white) !important;
 }}
 
 /* ════════════════════════════════════════════════════════════
@@ -301,11 +355,24 @@ button[kind="header"],
 [data-testid="stChatInput"] > div,
 [data-testid="stChatInputContainer"],
 .stChatInput,
-div[data-testid="stBottom"] *:not(textarea):not(button):not(svg):not(path) {{
+div[data-testid="stBottom"] > *,
+div[data-testid="stBottom"] > * > *,
+div[data-testid="stBottom"] > * > * > *,
+div[data-testid="stBottom"] > * > * > * > * {{
     background: {_NUDE} !important;
     background-color: {_NUDE} !important;
     border-top: none !important;
     border-color: transparent !important;
+}}
+
+/* Re-assert textarea and button styles inside bottom bar */
+div[data-testid="stBottom"] textarea {{
+    background: #FFFFFF !important;
+    background-color: #FFFFFF !important;
+    color: #1D1D1F !important;
+    -webkit-text-fill-color: #1D1D1F !important;
+    caret-color: #1D1D1F !important;
+    border: 1px solid rgba(0,0,0,0.07) !important;
 }}
 
 [data-testid="stChatInput"] textarea {{
@@ -313,15 +380,25 @@ div[data-testid="stBottom"] *:not(textarea):not(button):not(svg):not(path) {{
     border: 1px solid var(--border) !important;
     background: var(--white) !important;
     background-color: var(--white) !important;
+    color: var(--text) !important;
+    caret-color: var(--text) !important;
     font-family: var(--font) !important;
     font-size: 0.88rem !important;
     padding: 0.75rem 1rem !important;
     box-shadow: 0 1px 8px rgba(0,0,0,0.05) !important;
+    -webkit-text-fill-color: var(--text) !important;
+}}
+
+[data-testid="stChatInput"] textarea::placeholder {{
+    color: var(--text-faint) !important;
+    -webkit-text-fill-color: var(--text-faint) !important;
 }}
 
 [data-testid="stChatInput"] textarea:focus {{
     border-color: var(--border-hover) !important;
     box-shadow: 0 2px 12px rgba(0,0,0,0.07) !important;
+    color: var(--text) !important;
+    -webkit-text-fill-color: var(--text) !important;
 }}
 
 /* Send button in chat input */
