@@ -1,305 +1,530 @@
-import os
+"""
+Streamlit Chat UI — Minimal Nude Design
+A clean, iMessage-inspired chat interface.
+"""
+
+import html as html_lib
 import json
+import os
+from datetime import datetime
+
 import streamlit as st
 from openai import OpenAI
 
-# ------------------------------------------------------------
-# Page config (minimal)
-# ------------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════
+# Page Configuration
+# ═══════════════════════════════════════════════════════════════
+
 st.set_page_config(
-    page_title="Chat",
+    page_title="Sandbox",
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# ------------------------------------------------------------
-# Minimal Nude UI (CSS injection)
-# ------------------------------------------------------------
-CUSTOM_CSS = """
-<style>
-/* ---------- Nude palette + typography ---------- */
-:root{
-  --bg: #f6f0ea;          /* light nude */
-  --surface: #fbf7f2;     /* slightly lighter */
-  --surface2:#ffffff;     /* clean white for controls */
-  --text: #1f1f1f;
-  --muted:#6b6b6b;
-  --border: rgba(17, 17, 17, 0.10);
-  --shadow: 0 8px 30px rgba(17,17,17,0.06);
-  --radius: 16px;
-  --radius-sm: 12px;
-  --user: #1f1f1f;        /* iMessage-like dark bubble */
-  --userText: #ffffff;
-  --bot: rgba(17,17,17,0.05); /* soft bot bubble */
-  --botText: #1f1f1f;
-  --focus: rgba(17,17,17,0.18);
+# ═══════════════════════════════════════════════════════════════
+# Design System (CSS)
+# ═══════════════════════════════════════════════════════════════
+
+_CSS = """<style>
+/* ── Design Tokens ───────────────────────────────────────── */
+:root {
+    --bg:           #F3ECE4;
+    --sidebar-bg:   #FAF7F4;
+    --white:        #FFFFFF;
+    --text:         #1D1D1F;
+    --text-muted:   #86868B;
+    --text-faint:   #AEAEB2;
+    --user-bg:      #1D1D1F;
+    --user-text:    #FFFFFF;
+    --bot-bg:       #FFFFFF;
+    --bot-text:     #1D1D1F;
+    --bot-border:   rgba(0, 0, 0, 0.06);
+    --border:       rgba(0, 0, 0, 0.07);
+    --border-hover: rgba(0, 0, 0, 0.14);
+    --hover-bg:     rgba(0, 0, 0, 0.03);
+    --radius-lg:    22px;
+    --radius-md:    14px;
+    --radius-sm:    10px;
+    --ease:         cubic-bezier(0.25, 0.1, 0.25, 1);
+    --dur:          150ms;
+    --font:         -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                    "Inter", "Segoe UI", system-ui, sans-serif;
 }
 
-html, body, [data-testid="stAppViewContainer"]{
-  background: var(--bg) !important;
-  color: var(--text) !important;
+/* ── Base ────────────────────────────────────────────────── */
+html, body,
+[data-testid="stAppViewContainer"],
+[data-testid="stApp"] {
+    background: var(--bg) !important;
+    color: var(--text) !important;
+    font-family: var(--font) !important;
+    -webkit-font-smoothing: antialiased;
 }
 
-.block-container{
-  padding-top: 1.25rem !important;
-  padding-bottom: 2.5rem !important;
-  max-width: 1100px;
+.block-container {
+    max-width: 720px !important;
+    padding: 2rem 1rem 7rem !important;
+    margin: 0 auto;
 }
 
-/* Hide Streamlit chrome */
-#MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
-header {visibility: hidden;}
-
-/* ---------- Sidebar polish ---------- */
-[data-testid="stSidebar"]{
-  background: var(--surface) !important;
-  border-right: 1px solid var(--border) !important;
-}
-[data-testid="stSidebar"] [data-testid="stMarkdownContainer"]{
-  color: var(--text) !important;
+/* ── Hide Streamlit Chrome ───────────────────────────────── */
+#MainMenu, footer, header,
+[data-testid="stDecoration"],
+[data-testid="stToolbar"],
+[data-testid="stStatusWidget"] {
+    display: none !important;
 }
 
-/* Make the collapse/expand control visible and crisp */
-button[kind="header"]{
-  opacity: 1 !important;
-  border-radius: 12px !important;
-}
-button[kind="header"]:hover{
-  background: rgba(17,17,17,0.04) !important;
+/* ── Typography ──────────────────────────────────────────── */
+h1, h2, h3, h4 {
+    font-family: var(--font) !important;
+    letter-spacing: -0.03em !important;
+    font-weight: 600 !important;
+    color: var(--text) !important;
 }
 
-/* ---------- Inputs ---------- */
+/* ── Sidebar ─────────────────────────────────────────────── */
+[data-testid="stSidebar"] {
+    background: var(--sidebar-bg) !important;
+    border-right: 1px solid var(--border) !important;
+}
+
+[data-testid="stSidebar"] .block-container,
+[data-testid="stSidebar"] > div:first-child {
+    padding: 1.5rem 1.25rem !important;
+    max-width: 100% !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
+    color: var(--text) !important;
+}
+
+/* Sidebar toggle — expanded state */
+button[kind="header"],
+[data-testid="stSidebarCollapseButton"] button {
+    opacity: 1 !important;
+    visibility: visible !important;
+    background: var(--sidebar-bg) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    transition: all var(--dur) var(--ease) !important;
+}
+
+button[kind="header"]:hover,
+[data-testid="stSidebarCollapseButton"] button:hover {
+    background: var(--white) !important;
+    border-color: var(--border-hover) !important;
+}
+
+/* Sidebar toggle — collapsed state (always visible, top-left) */
+[data-testid="collapsedControl"] {
+    position: fixed !important;
+    top: 14px !important;
+    left: 14px !important;
+    z-index: 999999 !important;
+}
+
+[data-testid="collapsedControl"] button {
+    opacity: 1 !important;
+    visibility: visible !important;
+    background: var(--white) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+    width: 36px !important;
+    height: 36px !important;
+    transition: all var(--dur) var(--ease) !important;
+}
+
+[data-testid="collapsedControl"] button:hover {
+    border-color: var(--border-hover) !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10) !important;
+}
+
+/* ── Form Controls ───────────────────────────────────────── */
+.stTextInput label, .stSelectbox label,
+.stTextArea label, .stSlider label {
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    color: var(--text-muted) !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    margin-bottom: 2px !important;
+}
+
 .stTextInput > div > div > input,
-.stSelectbox > div > div > div,
-.stTextArea textarea{
-  border-radius: 14px !important;
-  border: 1px solid var(--border) !important;
-  background: var(--surface2) !important;
-  color: var(--text) !important;
-  box-shadow: none !important;
+.stTextArea textarea {
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--border) !important;
+    background: var(--white) !important;
+    color: var(--text) !important;
+    font-family: var(--font) !important;
+    font-size: 0.88rem !important;
+    box-shadow: none !important;
+    transition: border var(--dur) var(--ease) !important;
 }
+
 .stTextInput > div > div > input:focus,
-.stTextArea textarea:focus{
-  border-color: var(--focus) !important;
-  outline: none !important;
+.stTextArea textarea:focus {
+    border-color: var(--border-hover) !important;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.02) !important;
+    outline: none !important;
 }
 
-/* Buttons */
-.stButton > button{
-  border-radius: 14px !important;
-  border: 1px solid var(--border) !important;
-  background: var(--surface2) !important;
-  color: var(--text) !important;
-  padding: 0.55rem 0.9rem !important;
-  box-shadow: none !important;
-  transition: 140ms ease !important;
-}
-.stButton > button:hover{
-  background: rgba(17,17,17,0.03) !important;
-}
-.stButton > button:active{
-  transform: translateY(1px);
+.stSelectbox > div > div {
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--border) !important;
+    background: var(--white) !important;
+    box-shadow: none !important;
 }
 
-/* Download button match */
-.stDownloadButton > button{
-  border-radius: 14px !important;
-  border: 1px solid var(--border) !important;
-  background: var(--surface2) !important;
-  color: var(--text) !important;
+[data-testid="stSlider"] [role="slider"] {
+    background: var(--text) !important;
 }
 
-/* ---------- Layout helpers ---------- */
-.hr{
-  height:1px;
-  background: var(--border);
-  margin: 14px 0;
+/* ── Buttons ─────────────────────────────────────────────── */
+.stButton > button,
+.stDownloadButton > button {
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--border) !important;
+    background: var(--white) !important;
+    color: var(--text) !important;
+    font-family: var(--font) !important;
+    font-weight: 500 !important;
+    font-size: 0.8rem !important;
+    padding: 0.5rem 1rem !important;
+    box-shadow: none !important;
+    letter-spacing: 0.01em !important;
+    transition: all var(--dur) var(--ease) !important;
 }
 
-/* ---------- Chat area ---------- */
-[data-testid="stChatMessage"]{
-  padding: 0.15rem 0 !important;
+.stButton > button:hover,
+.stDownloadButton > button:hover {
+    background: var(--hover-bg) !important;
+    border-color: var(--border-hover) !important;
 }
 
-/* Remove default "card" feel */
-[data-testid="stChatMessageContent"]{
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  padding: 0 !important;
+.stButton > button:active {
+    transform: scale(0.97) !important;
 }
 
-/* Bubble base */
-.bubble{
-  display: inline-block;
-  max-width: min(780px, 92%);
-  padding: 10px 14px;
-  border-radius: 18px;
-  line-height: 1.45;
-  border: 1px solid transparent;
-  word-wrap: break-word;
-  white-space: pre-wrap;
+/* ── Chat Messages (strip Streamlit defaults) ────────────── */
+[data-testid="stChatMessage"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 2px 0 !important;
+    gap: 0 !important;
 }
 
-/* Assistant bubble (left) */
-.bubble.bot{
-  background: var(--bot);
-  color: var(--botText);
-  border-color: rgba(17,17,17,0.06);
-  border-top-left-radius: 8px;
+/* Hide built-in avatar column */
+[data-testid="stChatMessage"] > div:first-child:not([data-testid="stChatMessageContent"]) {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
 }
 
-/* User bubble (right) */
-.bubble.user{
-  background: var(--user);
-  color: var(--userText);
-  border-top-right-radius: 8px;
+[data-testid="stChatMessageContent"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
-/* Align wrappers */
-.row{
-  display: flex;
-  width: 100%;
-  gap: 12px;
-}
-.row.left{
-  justify-content: flex-start;
-}
-.row.right{
-  justify-content: flex-end;
+/* ── Message Bubbles ─────────────────────────────────────── */
+.msg-row {
+    display: flex;
+    width: 100%;
+    margin: 2px 0;
 }
 
-/* Sticky chat input area */
-[data-testid="stChatInput"]{
-  position: sticky;
-  bottom: 0;
-  background: rgba(246, 240, 234, 0.92);
-  backdrop-filter: blur(6px);
-  border-top: 1px solid var(--border);
-  padding-top: 0.6rem;
-  padding-bottom: 0.2rem;
-}
-[data-testid="stChatInput"] textarea{
-  border-radius: 16px !important;
-  border: 1px solid var(--border) !important;
-  background: var(--surface2) !important;
+.msg-row.right { justify-content: flex-end; }
+.msg-row.left  { justify-content: flex-start; }
+
+.msg-bubble {
+    max-width: 78%;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    font-family: var(--font);
 }
 
-/* Small, minimalist headings */
-h1, h2, h3{
-  letter-spacing: -0.02em;
+.msg-bubble.user {
+    background: var(--user-bg);
+    color: var(--user-text);
+    border-radius: 20px 20px 4px 20px;
 }
 
-/* Reduce spacing around markdown */
-[data-testid="stMarkdownContainer"] p{
-  margin-bottom: 0.5rem;
+.msg-bubble.bot {
+    background: var(--bot-bg);
+    color: var(--bot-text);
+    border: 1px solid var(--bot-border);
+    border-radius: 20px 20px 20px 4px;
 }
-</style>
-"""
-st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
-# ------------------------------------------------------------
-# State
-# ------------------------------------------------------------
-def init_state():
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-    if "system_prompt" not in st.session_state:
-        st.session_state.system_prompt = (
-            "You are a helpful, concise assistant with excellent product sense."
-        )
+.msg-meta {
+    font-size: 0.65rem;
+    color: var(--text-faint);
+    margin-top: 3px;
+    padding: 0 4px;
+}
 
-init_state()
+.msg-row.right .msg-meta { text-align: right; }
+.msg-row.left  .msg-meta { text-align: left; }
 
-# ------------------------------------------------------------
-# Sidebar (polished, minimal)
-# ------------------------------------------------------------
+/* ── Chat Input (sticky bottom bar) ──────────────────────── */
+[data-testid="stBottom"] {
+    background: linear-gradient(
+        to bottom,
+        rgba(243, 236, 228, 0),
+        rgba(243, 236, 228, 0.96) 30%,
+        rgba(243, 236, 228, 1) 50%
+    ) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    padding: 0.5rem 0 !important;
+}
+
+[data-testid="stChatInput"] textarea {
+    border-radius: var(--radius-lg) !important;
+    border: 1px solid var(--border) !important;
+    background: var(--white) !important;
+    font-family: var(--font) !important;
+    font-size: 0.88rem !important;
+    padding: 0.7rem 1rem !important;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-testid="stChatInput"] textarea:focus {
+    border-color: var(--border-hover) !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* ── Utilities ───────────────────────────────────────────── */
+.divider {
+    height: 1px;
+    background: var(--border);
+    margin: 1.1rem 0;
+}
+
+.sidebar-footer {
+    font-size: 0.68rem;
+    color: var(--text-faint);
+    letter-spacing: 0.02em;
+    padding-top: 0.5rem;
+}
+
+[data-testid="stAlert"] {
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--border) !important;
+    font-size: 0.85rem !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.10);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.18);
+}
+
+/* ── Welcome (empty state) ───────────────────────────────── */
+.welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6rem 1rem 4rem;
+    text-align: center;
+}
+
+.welcome-title {
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.03em;
+    margin: 0 0 6px;
+}
+
+.welcome-sub {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    max-width: 300px;
+    line-height: 1.5;
+    margin: 0;
+}
+</style>"""
+
+st.markdown(_CSS, unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════════════════════════
+# Session State
+# ═══════════════════════════════════════════════════════════════
+
+_DEFAULTS: dict = {
+    "messages": [],
+    "system_prompt": "You are a helpful, concise assistant.",
+}
+
+for _k, _v in _DEFAULTS.items():
+    if _k not in st.session_state:
+        st.session_state[_k] = _v
+
+# ═══════════════════════════════════════════════════════════════
+# Helpers
+# ═══════════════════════════════════════════════════════════════
+
+
+def _esc(text: str) -> str:
+    """HTML-escape user content to prevent injection in rendered bubbles."""
+    return html_lib.escape(str(text))
+
+
+def _bubble(role: str, content: str, timestamp: str = "") -> None:
+    """Render a single message as an aligned, styled bubble."""
+    side = "right" if role == "user" else "left"
+    kind = "user" if role == "user" else "bot"
+    escaped = _esc(content)
+    meta = f'<div class="msg-meta">{timestamp}</div>' if timestamp else ""
+    st.markdown(
+        f'<div class="msg-row {side}">'
+        f"<div>"
+        f'<div class="msg-bubble {kind}">{escaped}</div>'
+        f"{meta}"
+        f"</div>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def _streaming_bubble(placeholder, content: str) -> None:
+    """Update the streaming placeholder with partial bot content."""
+    escaped = _esc(content)
+    placeholder.markdown(
+        f'<div class="msg-row left">'
+        f'<div><div class="msg-bubble bot">{escaped}</div></div>'
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def _final_bubble(placeholder, content: str, timestamp: str) -> None:
+    """Replace streaming placeholder with final bubble including timestamp."""
+    escaped = _esc(content)
+    placeholder.markdown(
+        f'<div class="msg-row left">'
+        f"<div>"
+        f'<div class="msg-bubble bot">{escaped}</div>'
+        f'<div class="msg-meta">{timestamp}</div>'
+        f"</div>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+
+# ═══════════════════════════════════════════════════════════════
+# Sidebar
+# ═══════════════════════════════════════════════════════════════
+
 with st.sidebar:
-    st.markdown("### Chat")
-    st.caption("Minimal Streamlit chat with streaming responses.")
-
-    st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
+    st.markdown("#### Sandbox")
+    st.caption("Chat settings")
+    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
     api_key = st.text_input(
-        "API key",
+        "API KEY",
         type="password",
         value=os.getenv("OPENAI_API_KEY", ""),
-        placeholder="Required to chat",
-        help="Stored only in your session. You can also set OPENAI_API_KEY in your environment.",
+        placeholder="sk-...",
+        help="Session-only. Set OPENAI_API_KEY env var to auto-fill.",
     )
 
     model = st.selectbox(
-        "Model",
+        "MODEL",
         ["gpt-4.1-mini", "gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"],
-        index=1,
+        index=0,
     )
-    temperature = st.slider("Temperature", 0.0, 1.2, 0.4, 0.1)
-    max_tokens = st.slider("Max tokens", 64, 2048, 512, 64)
+
+    temperature = st.slider("TEMPERATURE", 0.0, 1.5, 0.4, 0.05)
+    max_tokens = st.slider("MAX TOKENS", 64, 4096, 1024, 64)
+
+    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
     st.session_state.system_prompt = st.text_area(
-        "System prompt",
+        "SYSTEM PROMPT",
         value=st.session_state.system_prompt,
-        height=110,
+        height=100,
     )
 
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("Clear", use_container_width=True):
+    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("Clear chat", use_container_width=True):
             st.session_state.messages = []
-    with c2:
+            st.rerun()
+    with col_b:
         st.download_button(
             "Export",
-            data=json.dumps(st.session_state.messages, indent=2, ensure_ascii=False),
-            file_name="chat_transcript.json",
+            data=json.dumps(
+                st.session_state.messages, indent=2, ensure_ascii=False
+            ),
+            file_name="chat_export.json",
             mime="application/json",
             use_container_width=True,
         )
 
-# ------------------------------------------------------------
-# Main (minimal header)
-# ------------------------------------------------------------
-st.markdown("## Chat")
-st.caption("A modern, minimal chat interface with right/left message bubbles.")
-
-# Seed message (optional)
-if len(st.session_state.messages) == 0:
-    st.session_state.messages.append(
-        {"role": "assistant", "content": "Hello. How can I help?"}
+    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="sidebar-footer">v1.0 &middot; Sandbox Chat</div>',
+        unsafe_allow_html=True,
     )
 
-# ------------------------------------------------------------
-# Render chat messages as iMessage-like bubbles
-# ------------------------------------------------------------
-for msg in st.session_state.messages:
-    role = msg["role"]
-    content = msg["content"]
+# ═══════════════════════════════════════════════════════════════
+# Main Chat Area
+# ═══════════════════════════════════════════════════════════════
 
-    # We still use st.chat_message for accessibility / built-in spacing,
-    # but we fully control the bubble UI inside it.
-    with st.chat_message(role):
-        if role == "user":
-            st.markdown(
-                f'<div class="row right"><div class="bubble user">{content}</div></div>',
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown(
-                f'<div class="row left"><div class="bubble bot">{content}</div></div>',
-                unsafe_allow_html=True,
-            )
+if not st.session_state.messages:
+    # Empty state — clean welcome prompt
+    st.markdown(
+        '<div class="welcome">'
+        '<p class="welcome-title">Sandbox</p>'
+        '<p class="welcome-sub">Type a message below to start a conversation.</p>'
+        "</div>",
+        unsafe_allow_html=True,
+    )
+else:
+    # Render conversation history
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            _bubble(msg["role"], msg["content"], msg.get("time", ""))
 
-# ------------------------------------------------------------
-# Chat input + streaming response
-# ------------------------------------------------------------
-prompt = st.chat_input("Message")
+# ═══════════════════════════════════════════════════════════════
+# Chat Input + Streaming
+# ═══════════════════════════════════════════════════════════════
+
+prompt = st.chat_input("Type a message...")
 
 if prompt:
     if not api_key:
-        st.warning("Add your API key in the sidebar to start chatting.")
+        st.warning("Enter your API key in the sidebar to begin.")
     else:
-        # Store user message
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        now = datetime.now().strftime("%H:%M")
+
+        # Persist and render user message
+        st.session_state.messages.append(
+            {"role": "user", "content": prompt, "time": now}
+        )
+        with st.chat_message("user"):
+            _bubble("user", prompt, now)
 
         # Build OpenAI payload
         payload = [{"role": "system", "content": st.session_state.system_prompt}]
@@ -311,9 +536,9 @@ if prompt:
 
         client = OpenAI(api_key=api_key)
 
-        # Stream assistant response
+        # Stream assistant reply
         with st.chat_message("assistant"):
-            row = st.empty()
+            placeholder = st.empty()
             collected = ""
 
             try:
@@ -326,29 +551,24 @@ if prompt:
                 )
 
                 for event in stream:
-                    chunk = ""
-                    if event and event.choices and event.choices[0].delta:
-                        chunk = event.choices[0].delta.content or ""
-                    if chunk:
-                        collected += chunk
-                        row.markdown(
-                            f'<div class="row left"><div class="bubble bot">{collected}</div></div>',
-                            unsafe_allow_html=True,
-                        )
+                    delta = (
+                        event.choices[0].delta.content
+                        if event and event.choices and event.choices[0].delta
+                        else None
+                    )
+                    if delta:
+                        collected += delta
+                        _streaming_bubble(placeholder, collected)
 
                 if not collected.strip():
-                    collected = "No response returned. Try again or switch models."
-                    row.markdown(
-                        f'<div class="row left"><div class="bubble bot">{collected}</div></div>',
-                        unsafe_allow_html=True,
-                    )
+                    collected = "No response returned. Please try again."
 
-            except Exception as e:
-                collected = f"Error: {e}"
-                row.markdown(
-                    f'<div class="row left"><div class="bubble bot">{collected}</div></div>',
-                    unsafe_allow_html=True,
-                )
+            except Exception as exc:
+                collected = f"Something went wrong: {exc}"
 
-        # Save assistant message
-        st.session_state.messages.append({"role": "assistant", "content": collected})
+            resp_time = datetime.now().strftime("%H:%M")
+            _final_bubble(placeholder, collected, resp_time)
+
+        st.session_state.messages.append(
+            {"role": "assistant", "content": collected, "time": resp_time}
+        )
